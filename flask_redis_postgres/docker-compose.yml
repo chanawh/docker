@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: web_app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app  # Bind mount for live code reloading
+    networks:
+      - app-network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+
+  db:
+    image: postgres:13
+    container_name: postgres_db
+    environment:
+      - POSTGRES_DB=mydb
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+    networks:
+      - app-network
+    volumes:
+      - db-data:/var/lib/postgresql/data # Persistent volume for the database
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+    networks:
+      - app-network
+
+volumes:
+  db-data:
+
+networks:
+  app-network:
+    driver: bridge
+
