@@ -2,7 +2,8 @@ import time
 import os
 import redis
 import psycopg2
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from celery_worker import process_data
 
 app = Flask(__name__)
 cache = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis'), port=6379)
@@ -48,6 +49,13 @@ def test_postgres():
         "value": value,
         "elapsed_seconds": elapsed
     })
+
+@app.route("/process", methods=["POST"])
+def process():
+    req_json = request.get_json()
+    data = req_json.get("data")
+    task = process_data.delay(data)
+    return jsonify({"task_id": task.id}), 202
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

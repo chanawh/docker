@@ -6,18 +6,33 @@ services:
       context: ./app
       dockerfile: Dockerfile
     container_name: web_app
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     volumes:
-      - ./app:/app  # Bind mount for live code reloading
+      - ./app:/app
     networks:
       - app-network
     depends_on:
       - db
       - redis
+      - rabbitmq
     environment:
       - POSTGRES_HOST=db
       - REDIS_HOST=redis
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+  nginx:
+    build: ./nginx
+    container_name: nginx_proxy
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - web
+    networks:
+      - app-network
 
   db:
     image: postgres:13
@@ -29,11 +44,51 @@ services:
     networks:
       - app-network
     volumes:
-      - db-data:/var/lib/postgresql/data # Persistent volume for the database
+      - db-data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
   redis:
     image: redis:alpine
     container_name: redis_cache
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
+  celery_worker:
+    build:
+      context: ./app
+    container_name: celery_worker
+    command: celery -A celery_worker.celery worker --loglevel=info
+    depends_on:
+      - web
+      - rabbitmq
+      - redis
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - app-network
+
+  celery_beat:
+    build:
+      context: ./app
+    container_name: celery_beat
+    command: celery -A celery_worker.celery beat --loglevel=info
+    depends_on:
+      - web
+      - rabbitmq
+      - redis
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     networks:
       - app-network
 
@@ -43,4 +98,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-
