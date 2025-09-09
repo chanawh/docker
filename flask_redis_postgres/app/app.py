@@ -57,5 +57,20 @@ def process():
     task = process_data.delay(data)
     return jsonify({"task_id": task.id}), 202
 
+@app.route("/products", methods=["POST"])
+def add_product():
+    data = request.get_json()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO products (name, price, stock) VALUES (%s, %s, %s) RETURNING product_id",
+        (data['name'], data['price'], data['stock'])
+    )
+    product_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"product_id": product_id}), 201
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
