@@ -1,6 +1,7 @@
 import os
 import psycopg2
 from celery import Celery
+from faker import Faker
 
 celery = Celery(
     "worker",
@@ -102,3 +103,26 @@ def update_order_status(order_id, status):
 def send_order_confirmation_email(customer_id, order_id):
     # Implement email sending logic here
     print(f"Sending order confirmation email to customer {customer_id} for order {order_id}")
+
+@celery.task
+def seed_database(num_records):
+    import psycopg2
+    import os
+    fake = Faker()
+    conn = psycopg2.connect(
+        host=os.environ.get('POSTGRES_HOST', 'db'),
+        database=os.environ.get('POSTGRES_DB', 'mydb'),
+        user=os.environ.get('POSTGRES_USER', 'myuser'),
+        password=os.environ.get('POSTGRES_PASSWORD', 'mypassword')
+    )
+    cur = conn.cursor()
+    insert_statement = "INSERT INTO users (name, email, city, job_title) VALUES (%s, %s, %s, %s)"
+    records = [
+        (fake.name(), fake.unique.email(), fake.city(), fake.job())
+        for _ in range(num_records)
+    ]
+    cur.executemany(insert_statement, records)
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"seeded": num_records}    

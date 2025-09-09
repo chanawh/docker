@@ -4,7 +4,9 @@ import redis
 import psycopg2
 from flask import Flask, jsonify, request
 from celery_worker import process_data, process_order, celery
+from celery_worker import seed_database
 from celery.result import AsyncResult
+
 
 app = Flask(__name__)
 cache = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis'), port=6379)
@@ -134,6 +136,23 @@ def get_order_status(task_id):
             'state': task.state,
             'status': str(task.info),  # Exception information
         }
+    return jsonify(response)
+
+@app.route("/seed", methods=["POST"])
+def seed():
+    req_json = request.get_json()
+    num_records = req_json.get("num_records", 1000)
+    task = seed_database.delay(num_records)
+    return jsonify({"task_id": task.id}), 202
+
+@app.route("/seed_status/<task_id>", methods=["GET"])
+def seed_status(task_id):
+    task = AsyncResult(task_id)
+    response = {"state": task.state}
+    if task.state == 'SUCCESS':
+        response["result"] = task.result
+    elif task.state == 'FAILURE':
+        response["error"] = str(task.info)
     return jsonify(response)
 
 if __name__ == "__main__":
