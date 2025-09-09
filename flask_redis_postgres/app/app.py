@@ -3,8 +3,7 @@ import os
 import redis
 import psycopg2
 from flask import Flask, jsonify, request
-from celery_worker import process_data
-from celery_worker import process_order
+from celery_worker import process_data, process_order, celery
 from celery.result import AsyncResult
 
 app = Flask(__name__)

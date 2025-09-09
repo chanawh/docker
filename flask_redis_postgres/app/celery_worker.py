@@ -1,4 +1,5 @@
 import os
+import psycopg2
 from celery import Celery
 
 celery = Celery(
@@ -6,6 +7,7 @@ celery = Celery(
     broker=os.environ.get("CELERY_BROKER_URL", "amqp://guest:guest@rabbitmq//"),
     backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 )
+
 def get_db_connection():
     conn = psycopg2.connect(
         host=os.environ.get('POSTGRES_HOST', 'db'),
@@ -25,6 +27,7 @@ def process_data(data):
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=300)
 def process_order(self, customer_id, items):
+    import time
     conn = None
     try:
         conn = get_db_connection()
