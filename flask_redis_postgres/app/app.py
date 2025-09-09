@@ -4,6 +4,8 @@ import redis
 import psycopg2
 from flask import Flask, jsonify, request
 from celery_worker import process_data
+from celery_worker import process_order
+from celery.result import AsyncResult
 
 app = Flask(__name__)
 cache = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis'), port=6379)
@@ -57,6 +59,11 @@ def process():
     task = process_data.delay(data)
     return jsonify({"task_id": task.id}), 202
 
+@app.route("/tasks/<task_id>")
+def get_task_status(task_id):
+    task = AsyncResult(task_id, app=celery)
+    return jsonify({"state": task.state, "result": task.result})
+
 @app.route("/products", methods=["POST"])
 def add_product():
     data = request.get_json()
@@ -71,6 +78,64 @@ def add_product():
     cur.close()
     conn.close()
     return jsonify({"product_id": product_id}), 201
+
+@app.route("/products", methods=["GET"])
+def get_products():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT product_id, name, price, stock FROM products")
+    products = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([{"product_id": p[0], "name": p[1], "price": str(p[2]), "stock": p[3]} for p in products])
+
+@app.route("/products/<int:product_id>", methods=["GET"])
+def get_product(product_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT product_id, name, price, stock FROM products WHERE product_id = %s", (product_id,))
+    product = cur.fetchone()
+    cur.close()
+    conn.close()
+    if product:
+        return jsonify({"product_id": product[0], "name": product[1], "price": str(product[2]), "stock": product[3]})
+    return jsonify({"message": "Product not found"}), 404
+
+@app.route("/orders", methods=["POST"])
+def create_order():
+    req_json = request.get_json()
+    customer_id = req_json.get("customer_id")
+    items = req_json.get("items")  # List of {"product_id": ..., "quantity": ...}
+
+    if not customer_id or not items:
+        return jsonify({"message": "Customer ID and items are required"}), 400
+
+    try:
+        task = process_order.delay(customer_id, items)  # Delegate to Celery
+        return jsonify({"message": "Order placed, processing in background", "task_id": task.id}), 202
+    except Exception as e:
+        return jsonify({"message": f"Error placing order: {str(e)}"}), 500
+
+@app.route("/orders/<string:task_id>", methods=["GET"])
+def get_order_status(task_id):
+    task = process_order.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': task.info.get('status', ''),
+            'result': task.info.get('result', None)
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': str(task.info),  # Exception information
+        }
+    return jsonify(response)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
