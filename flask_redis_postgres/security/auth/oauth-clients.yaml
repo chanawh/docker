@@ -1,0 +1,6 @@
+clients:
+  - client_id: "your-oauth-client-id"
+    client_secret: "your-oauth-client-secret"
+    provider: "google" # or github, etc.
+    redirect_uris:
+      - "https://yourdomain.com/oauth/callback"

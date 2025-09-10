@@ -92,6 +92,18 @@ services:
     networks:
       - app-network
 
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    environment:
+      LDAP_ORGANISATION: "Example Org"
+      LDAP_DOMAIN: "example.com"
+      LDAP_ADMIN_PASSWORD: "password"
+    ports:
+      - "389:389"
+    networks:
+      - app-network
+
 volumes:
   db-data:
 

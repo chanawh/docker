@@ -3,3 +3,6 @@ redis
 psycopg2-binary
 celery
 Faker
+Flask-LDAP3-Login
+Flask-OAuthlib
+pyyaml
