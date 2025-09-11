@@ -47,6 +47,11 @@ if ldap_oauth_enabled:
     app.config['LDAP_BASE_DN'] = ldap_cfg.get('LDAP_BASE_DN') or os.environ.get('LDAP_BASE_DN', 'dc=example,dc=com')
     app.config['LDAP_BIND_USER_DN'] = ldap_cfg.get('LDAP_BIND_USER_DN') or os.environ.get('LDAP_BIND_USER_DN', None)
     app.config['LDAP_BIND_USER_PASSWORD'] = ldap_cfg.get('LDAP_BIND_USER_PASSWORD') or os.environ.get('LDAP_BIND_USER_PASSWORD', None)
+    # User search configuration from YAML or defaults
+    app.config['LDAP_USER_DN'] = ldap_cfg.get('LDAP_USER_DN', 'ou=users,dc=example,dc=com')
+    app.config['LDAP_USER_RDN_ATTR'] = ldap_cfg.get('LDAP_USER_RDN_ATTR', 'uid')
+    app.config['LDAP_USER_LOGIN_ATTR'] = ldap_cfg.get('LDAP_USER_LOGIN_ATTR', 'uid')
+    print("LDAP config:", app.config['LDAP_HOST'], app.config['LDAP_BASE_DN'])
     ldap_manager = LDAP3LoginManager(app)
 
     oauth = OAuth(app)

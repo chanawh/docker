@@ -1,0 +1,7 @@
+LDAP_HOST: "ldap://openldap"
+LDAP_BASE_DN: "dc=example,dc=com"
+LDAP_BIND_USER_DN: "cn=admin,dc=example,dc=com"
+LDAP_BIND_USER_PASSWORD: "password"
+LDAP_USER_DN: "ou=users,dc=example,dc=com"
+LDAP_USER_RDN_ATTR: "uid"
+LDAP_USER_LOGIN_ATTR: "uid"
