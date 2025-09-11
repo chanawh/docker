@@ -4,5 +4,8 @@ psycopg2-binary
 celery
 Faker
 Flask-LDAP3-Login
-Flask-OAuthlib
+Authlib
 pyyaml
+requests
+python-dotenv
+ldap3
