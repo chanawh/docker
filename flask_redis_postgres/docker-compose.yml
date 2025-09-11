@@ -114,24 +114,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-
-dn: ou=users,dc=example,dc=com
-objectClass: organizationalUnit
-ou: users
-
-dn: uid=testuser,ou=users,dc=example,dc=com
-objectClass: inetOrgPerson
-objectClass: posixAccount
-objectClass: shadowAccount
-uid: testuser
-sn: User
-givenName: Test
-cn: Test User
-displayName: Test User
-uidNumber: 10000
-gidNumber: 5000
-userPassword: {SSHA}encrypted_password_here
-gecos: Test User
-loginShell: /bin/bash
-homeDirectory: /home/testuser
-mail: testuser@example.com
