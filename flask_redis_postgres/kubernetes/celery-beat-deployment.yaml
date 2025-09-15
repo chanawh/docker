@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.37.0 (fb0539e64)
+  labels:
+    io.kompose.service: celery-beat
+  name: celery-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: celery-beat
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.37.0 (fb0539e64)
+      labels:
+        io.kompose.service: celery-beat
+    spec:
+      containers:
+        - args:
+            - celery
+            - -A
+            - celery_worker.celery
+            - beat
+            - --loglevel=info
+          env:
+            - name: CELERY_BROKER_URL
+              value: amqp://guest:guest@rabbitmq//
+            - name: CELERY_RESULT_BACKEND
+              value: redis://redis:6379/0
+          image: chanawh/celery_beat:latest
+          imagePullPolicy: Never
+          name: celery-beat
+      restartPolicy: Always
